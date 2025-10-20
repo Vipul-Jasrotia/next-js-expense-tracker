@@ -51,3 +51,6 @@ export async function generateInsightAnswer(question: string): Promise<string> {
     return "I'm unable to provide a detailed answer at the moment. Please try refreshing the insights or check your connection.";
   }
 }
+
+// ✅ Added this line so your import { getAIInsights } will work
+export const getAIInsights = generateInsightAnswer;
