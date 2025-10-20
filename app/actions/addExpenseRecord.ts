@@ -1,13 +1,14 @@
 'use server';
+
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { getDb } from '@/lib/db'; // Use Vercel-safe function
 
 interface RecordData {
   text: string;
   amount: number;
   category: string;
-  date: string; // Added date field
+  date: string;
 }
 
 interface RecordResult {
@@ -16,60 +17,44 @@ interface RecordResult {
 }
 
 async function addExpenseRecord(formData: FormData): Promise<RecordResult> {
+  const db = getDb();
+  if (!db) {
+    console.log('Skipping DB logic during Vercel build');
+    return { error: 'Database not available during build' };
+  }
+
   const textValue = formData.get('text');
   const amountValue = formData.get('amount');
   const categoryValue = formData.get('category');
-  const dateValue = formData.get('date'); // Extract date from formData
+  const dateValue = formData.get('date');
 
-  // Check for input values
-  if (
-    !textValue ||
-    textValue === '' ||
-    !amountValue ||
-    !categoryValue ||
-    categoryValue === '' ||
-    !dateValue ||
-    dateValue === ''
-  ) {
+  if (!textValue || textValue === '' || !amountValue || !categoryValue || categoryValue === '' || !dateValue || dateValue === '') {
     return { error: 'Text, amount, category, or date is missing' };
   }
 
-  const text: string = textValue.toString(); // Ensure text is a string
-  const amount: number = parseFloat(amountValue.toString()); // Parse amount as number
-  const category: string = categoryValue.toString(); // Ensure category is a string
-  // Convert date to ISO-8601 format while preserving the user's input date
+  const text: string = textValue.toString();
+  const amount: number = parseFloat(amountValue.toString());
+  const category: string = categoryValue.toString();
+
   let date: string;
   try {
-    // Parse the date string (YYYY-MM-DD format) and create a date at noon UTC to avoid timezone issues
     const inputDate = dateValue.toString();
     const [year, month, day] = inputDate.split('-');
-    const dateObj = new Date(
-      Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)
-    );
+    const dateObj = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0));
     date = dateObj.toISOString();
   } catch (error) {
-    console.error('Invalid date format:', error); // Log the error
+    console.error('Invalid date format:', error);
     return { error: 'Invalid date format' };
   }
 
-  // Get logged in user
   const { userId } = await auth();
-
-  // Check for user
   if (!userId) {
     return { error: 'User not found' };
   }
 
   try {
-    // Create a new record (allow multiple expenses per day)
     const createdRecord = await db.record.create({
-      data: {
-        text,
-        amount,
-        category,
-        date, // Save the date to the database
-        userId,
-      },
+      data: { text, amount, category, date, userId },
     });
 
     const recordData: RecordData = {
@@ -83,10 +68,8 @@ async function addExpenseRecord(formData: FormData): Promise<RecordResult> {
 
     return { data: recordData };
   } catch (error) {
-    console.error('Error adding expense record:', error); // Log the error
-    return {
-      error: 'An unexpected error occurred while adding the expense record.',
-    };
+    console.error('Error adding expense record:', error);
+    return { error: 'An unexpected error occurred while adding the expense record.' };
   }
 }
 

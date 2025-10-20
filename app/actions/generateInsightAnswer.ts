@@ -1,14 +1,20 @@
 'use server';
 
 import { checkUser } from '@/lib/checkUser';
-import { db } from '@/lib/db';
 import { generateAIAnswer, ExpenseRecord } from '@/lib/ai';
+import { getDb } from '@/lib/db'; // Vercel-safe DB import
 
 export async function generateInsightAnswer(question: string): Promise<string> {
   try {
     const user = await checkUser();
     if (!user) {
       throw new Error('User not authenticated');
+    }
+
+    const db = getDb();
+    if (!db) {
+      console.log('Skipping DB logic during Vercel build');
+      return "I'm unable to provide a detailed answer at the moment. Database not available during build.";
     }
 
     // Get user's recent expenses (last 30 days)

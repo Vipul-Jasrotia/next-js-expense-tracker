@@ -1,5 +1,6 @@
 'use server';
-import { db } from '@/lib/db';
+
+import { getDb } from '@/lib/db'; // Vercel-safe DB import
 import { auth } from '@clerk/nextjs/server';
 
 async function getBestWorstExpense(): Promise<{
@@ -7,8 +8,13 @@ async function getBestWorstExpense(): Promise<{
   worstExpense?: number;
   error?: string;
 }> {
-  const { userId } = await auth();
+  const db = getDb();
+  if (!db) {
+    console.log('Skipping DB logic during Vercel build');
+    return { error: 'Database not available during build' };
+  }
 
+  const { userId } = await auth();
   if (!userId) {
     return { error: 'User not found' };
   }
