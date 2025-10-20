@@ -1,13 +1,22 @@
 import { PrismaClient } from '@prisma/client'
 
-declare global{
-    var prisma: PrismaClient|undefined;
+declare global {
+  var prisma: PrismaClient | undefined;
 }
 
-export const db=globalThis.prisma||new PrismaClient();
+/**
+ * Only create a PrismaClient instance when running on server (runtime), 
+ * not during Vercel build or static generation.
+ */
+export function getPrismaClient(): PrismaClient | null {
+  if (process.env.VERCEL && process.env.VERCEL_ENV === 'preview') {
+    // During Vercel build, return null
+    return null;
+  }
 
-if(process.env.NODE_ENV !=='production')
-{
-    globalThis.prisma=db;
+  if (!globalThis.prisma) {
+    globalThis.prisma = new PrismaClient();
+  }
+  return globalThis.prisma;
 }
 
