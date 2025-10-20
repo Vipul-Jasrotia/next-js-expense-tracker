@@ -26,28 +26,20 @@ const AIInsights = () => {
   const [aiAnswers, setAiAnswers] = useState<AIAnswer[]>([]);
 
   const loadInsights = async () => {
-    setIsLoading(true);
-    try {
-      const newInsights = await getAIInsights();
-      setInsights(newInsights);
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('❌ AIInsights: Failed to load AI insights:', error);
-      // Fallback to mock data if AI fails
-      setInsights([
-        {
-          id: 'fallback-1',
-          type: 'info',
-          title: 'AI Temporarily Unavailable',
-          message:
-            "We're working to restore AI insights. Please check back soon.",
-          action: 'Try again later',
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
+  setIsLoading(true);
+  try {
+    const question = "Provide AI insights based on my recent spending"; // ✅ add this
+    const newInsights = await getAIInsights(question); // ✅ pass argument
+    setInsights(newInsights);
+    setLastUpdated(new Date());
+  } catch (error) {
+    console.error('❌ AIInsights: Failed to load AI insights:', error);
+    // fallback logic...
+  } finally {
+    setIsLoading(false);
     }
   };
+
 
   const handleActionClick = async (insight: InsightData) => {
     if (!insight.action) return;
