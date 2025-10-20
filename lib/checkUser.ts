@@ -1,5 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
-import { db } from "./db";
+import { getDb } from "./db"; // ✅ fixed import
 
 export const checkUser = async () => {
   const user = await currentUser();
@@ -7,6 +7,8 @@ export const checkUser = async () => {
   if (!user) {
     return null;
   }
+
+  const db = getDb(); // ✅ initialize database safely
 
   // ✅ Find the user by Clerk ID
   const loggedInUser = await db.user.findUnique({
