@@ -1,5 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
-import { getDb } from "./db"; // ✅ fixed import
+import { getDb } from "./db"; // ✅ safe Vercel import
 
 export const checkUser = async () => {
   const user = await currentUser();
@@ -9,6 +9,15 @@ export const checkUser = async () => {
   }
 
   const db = getDb(); // ✅ initialize database safely
+  if (!db) {
+    console.log("⚠️ Database not initialized (likely during build). Returning mock user.");
+    return {
+      clerkUserId: user.id,
+      name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+      imageUrl: user.imageUrl,
+      email: user.emailAddresses[0]?.emailAddress || "",
+    };
+  }
 
   // ✅ Find the user by Clerk ID
   const loggedInUser = await db.user.findUnique({
