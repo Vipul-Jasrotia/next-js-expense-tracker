@@ -25,32 +25,33 @@ const AIInsights = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [aiAnswers, setAiAnswers] = useState<AIAnswer[]>([]);
 
-  // Load insights (InsightData[])
+  // Load insights
   const loadInsights = async () => {
     setIsLoading(true);
     try {
-      const newInsights = await getAIInsights(); // must return InsightData[]
-      setInsights(newInsights);
+      const question = "Provide AI insights based on my recent spending";
+      const rawInsights = await getAIInsights(question);
+
+      // Ensure proper typing and default values
+      const formattedInsights: InsightData[] = (rawInsights || []).map((insight: any) => ({
+        id: String(insight.id),
+        type: insight.type ?? 'info',
+        title: insight.title ?? '',
+        message: insight.message ?? '',
+        action: insight.action,
+        confidence: insight.confidence,
+      }));
+
+      setInsights(formattedInsights);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('❌ AIInsights: Failed to load AI insights:', error);
-      // fallback
-      setInsights([
-        {
-          id: 'fallback-1',
-          type: 'info',
-          title: 'AI Temporarily Unavailable',
-          message:
-            "We're working to restore AI insights. Please check back soon.",
-          action: 'Try again later',
-        },
-      ]);
+      console.error("❌ AIInsights: Failed to load AI insights:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle insight action click → generates AI answer
+  // Handle insight action click → generate AI answer
   const handleActionClick = async (insight: InsightData) => {
     if (!insight.action) return;
 
@@ -70,7 +71,7 @@ const AIInsights = () => {
 
     try {
       const question = `${insight.title}: ${insight.action}`;
-      const answer = await generateInsightAnswer(question); // returns string
+      const answer = await generateInsightAnswer(question);
 
       setAiAnswers(prev =>
         prev.map(a =>
@@ -84,8 +85,7 @@ const AIInsights = () => {
           a.insightId === insight.id
             ? {
                 ...a,
-                answer:
-                  'Sorry, I was unable to generate a detailed answer. Please try again.',
+                answer: 'Sorry, unable to generate an answer. Please try again.',
                 isLoading: false,
               }
             : a
@@ -94,8 +94,12 @@ const AIInsights = () => {
     }
   };
 
+  // Load insights on mount
   useEffect(() => {
-    loadInsights();
+    const fetchData = async () => {
+      await loadInsights();
+    };
+    fetchData();
   }, []);
 
   // Utils
@@ -140,6 +144,7 @@ const AIInsights = () => {
     return lastUpdated.toLocaleDateString();
   };
 
+  // Loading skeleton
   if (isLoading) {
     return (
       <div className='bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-100/50 dark:border-gray-700/50'>
@@ -180,6 +185,7 @@ const AIInsights = () => {
     );
   }
 
+  // Render insights
   return (
     <div className='bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-100/50 dark:border-gray-700/50 hover:shadow-2xl'>
       {/* header */}
@@ -213,7 +219,7 @@ const AIInsights = () => {
         </div>
       </div>
 
-      {/* insights */}
+      {/* insights grid */}
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4'>
         {insights.map(insight => {
           const currentAnswer = aiAnswers.find(a => a.insightId === insight.id);
@@ -268,7 +274,7 @@ const AIInsights = () => {
                     </div>
                   )}
 
-                  {currentAnswer && (
+                  {currentAnswer && !currentAnswer.isLoading && (
                     <div className='mt-3 p-3 bg-white/70 dark:bg-gray-700/70 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-600'>
                       <div className='flex items-start gap-2'>
                         <div className='w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-lg flex items-center justify-center flex-shrink-0'>
@@ -278,17 +284,9 @@ const AIInsights = () => {
                           <h5 className='font-semibold text-gray-900 dark:text-gray-100 text-xs mb-1'>
                             AI Answer:
                           </h5>
-                          {currentAnswer.isLoading ? (
-                            <div className='space-y-1'>
-                              <div className='animate-pulse bg-gray-200 dark:bg-gray-600 h-2 rounded-lg w-full'></div>
-                              <div className='animate-pulse bg-gray-200 dark:bg-gray-600 h-2 rounded-lg w-3/4'></div>
-                              <div className='animate-pulse bg-gray-200 dark:bg-gray-600 h-2 rounded-lg w-1/2'></div>
-                            </div>
-                          ) : (
-                            <p className='text-gray-700 dark:text-gray-300 text-xs leading-relaxed'>
-                              {currentAnswer.answer}
-                            </p>
-                          )}
+                          <p className='text-gray-700 dark:text-gray-300 text-xs leading-relaxed'>
+                            {currentAnswer.answer}
+                          </p>
                         </div>
                       </div>
                     </div>
